@@ -1,8 +1,18 @@
 # CRIU SpringBoot Server in Docker
 
+## Motivation
+
+FaaS services are currently deployed by all major cloud providers using Linux containers. However, there are two performance problems that impact the economic bottom-line of FaaS. The first is the bloat in the memory footprint and usage of system resources by containers. The second is the long start-up times, caused by the time to initialize a container for each FaaS function.
+
+By utilizing CRIU, which provides a way to dump a booted FaaS service and restore it afterwards, we can reap the following two benefits. Firstly, without cold booting every time when a FaaS service is demonded, the start time of FaaS start-up time can be greatly shortened. Secondly, shared image makes it possible to reduce memory resources usage.
+
+This report shows an experiment on how to use CRIU command line tools to checkpoint and restore a simple SpringBoot server. It then gives a rough estimation of the expected performance boost.
+
+## CRIU A SpringBoot Server
+
 **Note: the followings are only tested in ubuntu 18.04. Other versions of host OS may not apply.**
 
-## Prerequisites 
+### Step 0. Prerequisites 
 
 Build the docker using `Dockerfile`:
 
@@ -20,8 +30,6 @@ CMD [ "bin/bash" ]
 ```sh
 docker build -t criu-docker .
 ```
-
-## CRIU A SpringBoot Server
 
 ### Step 1. Go into the Docker
 
@@ -86,12 +94,23 @@ sleep 0.3
 curl localhost:8080
 ```
 
-## Performance
+## Performance Evaluation
 
-Note time cost is estimiated very roughly.
+### Cold Boot
 
-The cold boot time cost of a SpringBoot server is around **6s**(according to springboot log in `test.log`).
+According to default springboot log, The cold boot time cost of a SpringBoot server is around **6s**.
 
-The checkpoint and restore step both take around **0.3s**. I measure the checkpoing time using `time`. And the restore step is measured using a very naive method: after restore is executed in backend, I use sleep to wait for 0.3s and then execute `curl`. If I set the wait time to 0.2s, the restore may fail.
+### Checkpoint
 
-So comparing to cold boot, restore is around 10 to 20 times faster.
+The checkpoint take around **0.26s**. I measure the checkpoing time by wrapping `time` around the dump command.
+
+### Restore 
+
+The restore takes around *0.2s*. I try to use `time` to measure, but it will cause the restore to fail and the reason is unknown. So I use a naive method to print a timestamp before restore and the server will print the timestamp after restoring. Thus the time cost is the substraction of the two timestamp.
+
+Comparing to cold boot, restore is around 10 to 20 times faster.
+
+## Future Work
+
+- **More confined capacity control.** Currently we use `--privileged --cap-add=ALL --security-opt seccomp=unconfined` to give all possible permissions to the container. However, not all these permissions are needed to restore a service.
+- **Reduce dump image size.** Run garbage collection before dumping.
