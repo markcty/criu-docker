@@ -114,3 +114,7 @@ Comparing to cold boot, restore is around 10 to 20 times faster.
 
 - **More confined capacity control.** Currently we use `--privileged --cap-add=ALL --security-opt seccomp=unconfined` to give all possible permissions to the container. However, not all these permissions are needed to restore a service.
 - **Reduce dump image size.** Run garbage collection before dumping.
+
+## Reference
+
+Replayable Execution Optimized for Page Sharing for a Managed Runtime Environment, EuroSys '19
